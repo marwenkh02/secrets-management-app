@@ -1,8 +1,6 @@
 #!/bin/sh
 
 # Vault Automated Entrypoint Script with Dynamic Database Secrets
-# This runs both Vault server and initialization
-
 echo "🚀 Starting Vault with automated initialization..."
 
 # Start Vault server in development mode in background
@@ -65,7 +63,7 @@ vault kv put secret/app \
   debug_mode="true" \
   log_level="info"
 
-# ✅ Enable Database Secrets Engine for Dynamic PostgreSQL Credentials
+# Enable Database Secrets Engine for Dynamic PostgreSQL Credentials
 echo "🔧 Setting up Dynamic PostgreSQL Secrets..."
 
 # Enable database secrets engine if not already enabled

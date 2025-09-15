@@ -8,14 +8,20 @@ services:
       - "8200:8200"
     environment:
       - VAULT_DEV_ROOT_TOKEN_ID=root
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
     cap_add:
       - IPC_LOCK
     volumes:
       - vault_data:/vault/data
-      - ./vault/entrypoint.sh:/vault/entrypoint.sh  # Mount entrypoint
-    command: ["sh", "/vault/entrypoint.sh"]  # Use custom entrypoint
+      - ./vault/entrypoint.sh:/vault/entrypoint.sh
+    command: ["sh", "/vault/entrypoint.sh"]
     networks:
       - devnet
+    healthcheck:
+      test: ["CMD", "vault", "status", "-format=json"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   db:
     image: postgres:15
@@ -30,18 +36,26 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - devnet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devuser -d devdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   backend:
     build: ./backend
     container_name: backend
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: >
+      sh -c "sleep 10 && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
       - ./backend:/app
     ports:
       - "8000:8000"
     depends_on:
-      - vault
-      - db
+      vault:
+        condition: service_healthy
+      db:
+        condition: service_healthy
     environment:
       - VAULT_ADDR=http://vault:8200
       - VAULT_TOKEN=root
